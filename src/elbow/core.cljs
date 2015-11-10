@@ -1,5 +1,7 @@
 (ns elbow.core
-  (:require [cljs.nodejs :as nodejs]
+  (:require [clojure.string :as string]
+            [cljs.nodejs :as nodejs]
+            [elbow.load :as load]
             [replumb.core :as replumb]))
 
 (js* "var window = global;")
@@ -7,7 +9,8 @@
 
 (nodejs/enable-util-print!)
 
-(defn read-eval-print-loop []
+(defn read-eval-print-loop
+  [load-fn!]
   (let [node-readline (nodejs/require "readline")
         rl (.createInterface node-readline
              #js {:input  (.-stdin js/process)
@@ -17,7 +20,8 @@
       (.on "line"
         (fn [cmd]
           (replumb/read-eval-call
-            {:verbose false}
+            {:verbose  false
+             :load-fn! load-fn!}
             (fn [res]
               (-> res
                 replumb/result->string
@@ -27,7 +31,20 @@
             cmd)))
       (.prompt))))
 
+(defn arg->src-paths
+  [arg]
+  (string/split arg #":"))
+
+(defn make-load-fn
+  [src-paths]
+  (partial load/node-load src-paths))
+
 (defn -main [& args]
-  (read-eval-print-loop))
+  (prn args)
+  (if-not (empty? args)
+    (read-eval-print-loop (-> (first args)
+                            arg->src-paths
+                            make-load-fn))
+    (read-eval-print-loop [])))
 
 (set! *main-cli-fn* -main)

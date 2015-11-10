@@ -9,7 +9,9 @@ Can use https://github.com/mfikes/replumb/tree/node-compat
 # Usage
 
 1. `lein cljsbuild once`
-2. `node out/main.js`
+2. `node out/main.js <src-paths>`
+
+where `src-paths` looks like `src1:/bar/src2:/foo/src3`
 
 # Example
 
