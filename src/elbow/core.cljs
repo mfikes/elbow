@@ -1,6 +1,5 @@
 (ns elbow.core
   (:require [cljs.nodejs :as nodejs]
-            [replumb.repl :as repl]
             [replumb.core :as replumb]))
 
 (js* "var window = global;")
@@ -17,7 +16,7 @@
       (.setPrompt (replumb/get-prompt))
       (.on "line"
         (fn [cmd]
-          (repl/read-eval-call
+          (replumb/read-eval-call
             {:verbose false}
             (fn [res]
               (-> res
