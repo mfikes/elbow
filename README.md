@@ -26,3 +26,11 @@ nil
 foo.bar=> ::a
 :foo.bar/a
 ```
+
+# Demo
+
+# Demo
+
+Watch a demo to see it in action:
+
+[![Elbow Demo](http://img.youtube.com/vi/VwARsqTRw7s/0.jpg)](http://www.youtube.com/watch?v=VwARsqTRw7s "Replumb in Node")
