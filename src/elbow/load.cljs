@@ -1,34 +1,59 @@
 (ns elbow.load
-  (:require [cljs.nodejs :as nodejs]))
+  (:require [clojure.string :as string]
+            [cljs.nodejs :as nodejs]))
 
-(defn- extension->lang
-  [extension]
-  (if (= ".js" extension)
+(defn filename->lang
+  "Converts a filename to a lang keyword by inspecting the file
+  extension."
+  [filename]
+  (if (string/ends-with? filename ".js")
     :js
     :clj))
 
-(defn- try-load
-  [fs [{:keys [full-path lang]} & more-files] cb]
-  (if full-path
-    (.readFile fs full-path "utf-8"
-      (fn [err source]
-        (if-not err
-          (cb {:lang   lang
+(defn read-some
+  "Reads the first filename in a sequence of supplied filenames,
+  using a supplied read-file-fn, calling back upon first successful
+  read, otherwise calling back with nil."
+  [[filename & more-filenames] read-file-fn cb]
+  (if filename
+    (read-file-fn
+      filename
+      (fn [source]
+        (if source
+          (cb {:lang   (filename->lang filename)
                :source source})
-          (try-load fs more-files cb))))
+          (read-some more-filenames read-file-fn cb))))
     (cb nil)))
 
-(defn- files-to-try
-  [src-paths path extensions]
-  (for [src-path src-paths
-        extension extensions]
-    {:full-path (str src-path "/" path extension)
-     :lang      (extension->lang extension)}))
-
-(defn node-load
-  [src-paths {:keys [macros path]} cb]
-  (let [fs (nodejs/require "fs")
-        extensions (if macros
+(defn filenames-to-try
+  "Produces a sequence of filenames to try reading, in the
+  order they should be tried."
+  [src-paths macros path]
+  (let [extensions (if macros
                      [".clj" ".cljc"]
                      [".cljs" ".cljc" ".js"])]
-    (try-load fs (files-to-try src-paths path extensions) cb)))
+    (for [extension extensions
+          src-path src-paths]
+      (str src-path "/" path extension))))
+
+(defn make-load-fn
+  "Makes a load function that will read from a sequence of src-paths
+  using a supplied read-file-fn."
+  [src-paths read-file-fn]
+  (fn [{:keys [macros path]} cb]
+    (read-some (filenames-to-try src-paths macros path) read-file-fn cb)))
+
+(def fs (nodejs/require "fs"))
+
+(defn- node-read-file
+  "Accepts a filename to read and a callback. Upon success, invokes
+  callback with the source. Otherwise invokes the callback with nil."
+  [filename cb]
+  (.readFile fs filename "utf-8"
+    (fn [err source]
+      (cb (when-not err
+            source)))))
+
+(defn make-node-load-fn
+  [src-paths]
+  (make-load-fn src-paths node-read-file))

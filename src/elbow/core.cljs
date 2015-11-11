@@ -35,16 +35,11 @@
   [arg]
   (string/split arg #":"))
 
-(defn make-load-fn
-  [src-paths]
-  (partial load/node-load src-paths))
-
 (defn -main [& args]
-  (prn args)
   (if-not (empty? args)
     (read-eval-print-loop (-> (first args)
                             arg->src-paths
-                            make-load-fn))
+                            load/make-node-load-fn))
     (read-eval-print-loop [])))
 
 (set! *main-cli-fn* -main)
