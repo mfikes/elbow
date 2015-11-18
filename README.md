@@ -3,8 +3,7 @@ Use Replumb in Node
 
 # Prereq's
 
-Need a fix for https://github.com/ScalaConsultants/replumb/issues/20
-Can use https://github.com/mfikes/replumb/tree/node-compat
+Build and install https://github.com/ScalaConsultants/replumb
 
 # Usage
 
