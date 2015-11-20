@@ -5,6 +5,55 @@
 
 (nodejs/enable-util-print!)
 
+;; Node file reading fns
+
+(def fs (nodejs/require "fs"))
+
+(defn node-read-file
+  "Accepts a filename to read and a callback. Upon success, invokes
+  callback with the source. Otherwise invokes the callback with nil."
+  [filename cb]
+  (.readFile fs filename "utf-8"
+    (fn [err source]
+      (cb (when-not err
+            source)))))
+
+(defn node-read-file-sync
+  "Accepts a filename to read. Upon success, returns the source.
+  Otherwise returns nil."
+  [filename]
+  (.readFileSync fs filename "utf-8"))
+
+;; Facilities for loading Closure deps
+
+(def goog-path-root "out/goog/")
+
+(defn closure-index
+  []
+  (let [paths-to-provides
+        (map (fn [[_ path provides]]
+               [path (map second
+                       (re-seq #"'(.*?)'" provides))])
+          (re-seq #"\ngoog\.addDependency\('(.*)', \[(.*?)\].*"
+            (node-read-file-sync (str goog-path-root "deps.js"))))]
+    (into {}
+      (for [[path provides] paths-to-provides
+            provide provides]
+        [(symbol provide) (str goog-path-root (second (re-find #"(.*)\.js$" path)))]))))
+
+(def closure-index-mem (memoize closure-index))
+
+(defn load-goog
+  [name cb]
+  (if-let [goog-path (get (closure-index-mem) name)]
+    (if-let [source (node-read-file-sync (str goog-path ".js"))]
+      (cb {:source source
+           :lang :js})
+      (cb nil))
+    (cb nil)))
+
+;; Facilities for loading files
+
 (defn- filename->lang
   "Converts a filename to a lang keyword by inspecting the file
   extension."
@@ -48,19 +97,12 @@
   source-cb is itself a function (fn [source] ...) that needs to be called
   with the source of the library (as string)."
   [src-paths read-file-fn]
-  (fn [{:keys [macros path]} cb]
-    (read-some (filenames-to-try src-paths macros path) read-file-fn cb)))
+  (fn [{:keys [name macros path]} cb]
+    (if (re-matches #"^goog/.*" path)
+      (load-goog name cb)
+      (read-some (filenames-to-try src-paths macros path) read-file-fn cb))))
 
-(def fs (nodejs/require "fs"))
-
-(defn- node-read-file
-  "Accepts a filename to read and a callback. Upon success, invokes
-  callback with the source. Otherwise invokes the callback with nil."
-  [filename cb]
-  (.readFile fs filename "utf-8"
-    (fn [err source]
-      (cb (when-not err
-            source)))))
+;; Simple REPL
 
 (defn read-eval-print-loop
   [src-paths]
