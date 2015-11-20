@@ -48,7 +48,7 @@
   (if-let [goog-path (get (closure-index-mem) name)]
     (if-let [source (node-read-file-sync (str goog-path ".js"))]
       (cb {:source source
-           :lang :js})
+           :lang   :js})
       (cb nil))
     (cb nil)))
 
@@ -72,7 +72,7 @@
       filename
       (fn [source]
         (if source
-          (cb {:lang (filename->lang filename)
+          (cb {:lang   (filename->lang filename)
                :source source})
           (read-some more-filenames read-file-fn cb))))
     (cb nil)))
@@ -88,6 +88,33 @@
           src-path src-paths]
       (str src-path "/" path extension))))
 
+(defn skip-load?
+  [name macros]
+  ((if macros
+     #{'cljs.pprint}
+     #{'goog.object
+       'goog.string
+       'goog.string.StringBuffer
+       'goog.array
+       'clojure.string
+       'clojure.set
+       'cljs.core
+       'cljs.env
+       'cljs.reader
+       'cljs.tagged-literals
+       'cljs.tools.reader.impl.utils
+       'cljs.pprint}) name))
+
+;; An atom to keep track of things we've already loaded
+(def loaded (atom #{}))
+
+(defn load?
+  [name macros]
+  (let [do-not-load (or (@loaded name)
+                      (skip-load? name macros))]
+    (swap! loaded conj name)
+    (not do-not-load)))
+
 (defn make-load-fn
   "Makes a load function that will read from a sequence of src-paths
   using a supplied read-file-fn. It returns a cljs.js-compatible
@@ -98,9 +125,13 @@
   with the source of the library (as string)."
   [src-paths read-file-fn]
   (fn [{:keys [name macros path]} cb]
-    (if (re-matches #"^goog/.*" path)
-      (load-goog name cb)
-      (read-some (filenames-to-try src-paths macros path) read-file-fn cb))))
+    (prn name)
+    (if (load? name macros)
+      (if (re-matches #"^goog/.*" path)
+        (load-goog name cb)
+        (read-some (filenames-to-try src-paths macros path) read-file-fn cb))
+      (cb {:source ""
+           :lang   :js}))))
 
 ;; Simple REPL
 
