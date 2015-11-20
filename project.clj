@@ -11,6 +11,8 @@
     :builds [{
         :source-paths ["src"]
         :compiler {
-          :target :nodejs
-          :output-to "out/main.js"
-          :optimizations :simple}}]})
+          :target        :nodejs
+          :main          elbow.core
+          :output-to     "out/main.js"
+          :output-dir    "out"
+          :optimizations :none}}]})
