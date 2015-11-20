@@ -1,10 +1,6 @@
 # elbow
 Use Replumb in Node
 
-# Prereq's
-
-Build and install https://github.com/ScalaConsultants/replumb
-
 # Usage
 
 1. `lein cljsbuild once`

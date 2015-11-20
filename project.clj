@@ -5,7 +5,7 @@
             :url "https://github.com/mfikes/elbow/blob/master/LICENSE"}
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.170"]
-                 [replumb/replumb "0.1.2-SNAPSHOT"]]
+                 [replumb/replumb "0.1.2"]]
   :plugins [[lein-cljsbuild "1.1.1"]]
   :cljsbuild {
     :builds [{
