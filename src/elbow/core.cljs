@@ -147,7 +147,7 @@
         (fn [cmd]
           (replumb/read-eval-call
             (merge
-              (replumb/nodejs-options (make-load-fn src-paths node-read-file)))
+              (replumb/options :nodejs (make-load-fn src-paths node-read-file)))
             (fn [res]
               (-> res
                 replumb/result->string
