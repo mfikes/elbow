@@ -4,8 +4,6 @@
             [replumb.core :as replumb]
             [elbow.pprint :as pprint]))
 
-(nodejs/enable-util-print!)
-
 ;; Node file reading fns
 
 (def fs (nodejs/require "fs"))
@@ -154,7 +152,7 @@
               (let [{:keys [error value]} res]
                 (if error
                   (println error)
-                  (print (with-out-str (pprint/pprint value)))))
+                  (pprint/pprint value)))
               (.setPrompt rl (replumb/get-prompt))
               (.prompt rl))
             cmd)))
@@ -172,3 +170,15 @@
       [])))
 
 (set! *main-cli-fn* -main)
+
+(defn enable-process-print! []
+  (set! *print-newline* true)
+  (set! *print-fn*
+    (fn [& args]
+      (.apply (.-write nodejs/process.stdout) nodejs/process.stdout (into-array args))))
+  (set! *print-err-fn*
+    (fn [& args]
+      (.apply (.-write nodejs/process.stderr) nodejs/process.stderr (into-array args))))
+  nil)
+
+(enable-process-print!)
