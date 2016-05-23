@@ -1,7 +1,8 @@
 (ns elbow.core
   (:require [clojure.string :as string]
             [cljs.nodejs :as nodejs]
-            [replumb.core :as replumb]))
+            [replumb.core :as replumb]
+            [elbow.pprint :as pprint]))
 
 (nodejs/enable-util-print!)
 
@@ -147,11 +148,13 @@
         (fn [cmd]
           (replumb/read-eval-call
             (merge
+              {:no-pr-str-on-value true}
               (replumb/options :nodejs (make-load-fn src-paths node-read-file)))
             (fn [res]
-              (-> res
-                replumb/result->string
-                println)
+              (let [{:keys [error value]} res]
+                (if error
+                  (println error)
+                  (print (with-out-str (pprint/pprint value)))))
               (.setPrompt rl (replumb/get-prompt))
               (.prompt rl))
             cmd)))
